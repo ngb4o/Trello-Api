@@ -1,13 +1,15 @@
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
 import { jwtHelper } from '~/utils/jwt'
+import { tokenBlacklistModel } from '~/models/tokenBlacklistModel'
 
 /**
  * Middleware: Verify JWT token và lấy userId từ token
  * Middleware này sẽ:
  * 1. Lấy token từ header Authorization: Bearer <token>
  * 2. Verify token
- * 3. Lưu userId vào req.userId để các controller/service sử dụng
+ * 3. Kiểm tra token có trong blacklist không (đã logout)
+ * 4. Lưu userId vào req.userId để các controller/service sử dụng
  */
 export const verifyToken = async (req, res, next) => {
   try {
@@ -21,6 +23,12 @@ export const verifyToken = async (req, res, next) => {
 
     // Lấy token (bỏ phần "Bearer ")
     const token = authHeader.substring(7)
+
+    // Kiểm tra token có trong blacklist không (đã logout)
+    const isBlacklisted = await tokenBlacklistModel.isTokenBlacklisted(token)
+    if (isBlacklisted) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Token has been revoked!')
+    }
 
     // Verify token và lấy payload
     const decoded = jwtHelper.verifyToken(token)

@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { userModel } from '~/models/userModel'
+import { tokenBlacklistModel } from '~/models/tokenBlacklistModel'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { jwtHelper } from '~/utils/jwt'
@@ -29,16 +30,9 @@ const register = async (reqBody) => {
     email: getUser.email
   })
 
-  const userResponse = {
-    id: getUser._id.toString(),
-    email: getUser.email,
-    username: getUser.username,
-    avatar: getUser.avatar,
-    createdAt: getUser.createdAt
-  }
-
+  // Chỉ trả về userId và token
   return {
-    user: userResponse,
+    userId: getUser._id.toString(),
     token
   }
 }
@@ -61,7 +55,32 @@ const login = async (reqBody) => {
     email: user.email
   })
 
-  // Trả về id thay vì _id trong response
+  // Chỉ trả về userId và token
+  return {
+    userId: user._id.toString(),
+    token
+  }
+}
+
+const logout = async (token, userId) => {
+  // Lưu token vào blacklist để không thể sử dụng lại
+  await tokenBlacklistModel.addToken({
+    token,
+    userId
+  })
+
+  return {
+    message: 'Logout successfully!'
+  }
+}
+
+const getProfile = async (userId) => {
+  const user = await userModel.findOneById(userId)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found!')
+  }
+
+  // Trả về thông tin user (không có password)
   const userResponse = {
     id: user._id.toString(),
     email: user.email,
@@ -70,13 +89,31 @@ const login = async (reqBody) => {
     createdAt: user.createdAt
   }
 
-  return {
-    user: userResponse,
-    token
+  return userResponse
+}
+
+const getUserById = async (targetUserId) => {
+  const user = await userModel.findOneById(targetUserId)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found!')
   }
+
+  // Trả về thông tin user (không có password)
+  const userResponse = {
+    id: user._id.toString(),
+    email: user.email,
+    username: user.username,
+    avatar: user.avatar,
+    createdAt: user.createdAt
+  }
+
+  return userResponse
 }
 
 export const userService = {
   register,
-  login
+  login,
+  logout,
+  getProfile,
+  getUserById
 }
