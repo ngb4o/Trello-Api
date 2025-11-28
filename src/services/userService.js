@@ -69,9 +69,7 @@ const logout = async (token, userId) => {
     userId
   })
 
-  return {
-    message: 'Logout successfully!'
-  }
+  return true
 }
 
 const getProfile = async (userId) => {

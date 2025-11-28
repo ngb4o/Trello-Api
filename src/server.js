@@ -11,7 +11,7 @@ const START_SERVER = () => {
 
   app.use(express.json())
 
-  app.use('/v1', APIs_V1)
+  app.use('/api', APIs_V1)
 
   app.use(errorHandlingMiddleware)
 
